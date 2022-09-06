@@ -9,6 +9,7 @@ object WordCount {
     val conf = new SparkConf().setMaster("local[*]").setAppName("wordCount")
     // 创建Spark上下文环境对象(连接对象)
     val spark = new SparkContext(conf)
+    spark.setLogLevel("ERROR")
     // 读取文件数据
     val fileRDD: RDD[String] = spark.textFile("D:\\study\\studyFile\\test1.txt")
     // 将文件中的数据分词
