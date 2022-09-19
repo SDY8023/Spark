@@ -1,5 +1,6 @@
 package SparkCore.RDD
 
+import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 
 /**
@@ -10,22 +11,6 @@ import org.apache.spark.{SparkConf, SparkContext}
  * */
 object TransFunctionRDD {
   var sc: SparkContext = null
-  def main(args: Array[String]): Unit = {
-    val conf = new SparkConf()
-      .setAppName("createRDD")
-      .setMaster("local[*]")
-    sc = new SparkContext(conf)
-//    testMap(sc)
-//    testMapPartitions(sc)
-//    testMapPartitionsWithIndex(sc)
-//    testFlatMap()
-//    testGlom()
-//    testGroupBy()
-//    testFilter()
-    testSample()
-
-
-  }
 
   def testMap(): Unit ={
     // map
@@ -117,6 +102,135 @@ object TransFunctionRDD {
     // 第二个参数：重复数据的几率，范围大于等于 0.表示每一个元素被期望抽取到的次数
     // 第三个参数：随机数种子
     rdd1.sample(true,2).foreach(println)
+  }
+
+  def testDistinct(): Unit ={
+    val rdd1 = sc.makeRDD(List(1,3, 2,2, 3, 4, 5, 6, 7, 8, 9, 10), 1)
+//    rdd1.distinct(12).foreach(println)
+    rdd1.map(x => (x,1))
+      .reduceByKey((x,y) => x,2).foreach(println)
+      //.map(_._1).foreach(println)
+  }
+
+  def testCoalesce(): Unit ={
+    val rdd1 = sc.makeRDD(List(1,3, 2,2, 3, 4, 5, 6, 7, 8, 9, 10), 5)
+    rdd1.repartition(10).mapPartitionsWithIndex((p,x) => {
+      x.map(v => (v,p))
+    }).foreach(println)
+  }
+
+  def testSortBy(): Unit ={
+    val rdd1 = sc.makeRDD(List(1,3, 2,2, 3, 4, 5, 6, 7, 8, 9, 10), 5)
+    rdd1.sortBy(x => x,false,2)
+      .mapPartitionsWithIndex((p,x) => {
+        x.map((_,p))
+      })
+      .foreach(println)
+  }
+
+  def testIntersection(): Unit ={
+    val rdd1 = sc.makeRDD(List(1, 2, 3, 4, 5))
+    val rdd2 = sc.makeRDD(List(2, 3, 7, 8, 9))
+    val rdd3 = sc.makeRDD(List[String]("2", "3", "7","8", "9"))
+    rdd1.intersection(rdd2).foreach(println)
+//    rdd1.intersection(rdd3).foreach(println)
+  }
+
+  def testUnion(): Unit ={
+    val rdd1 = sc.makeRDD(List(1, 2, 3, 4, 5))
+    val rdd2 = sc.makeRDD(List(2, 3, 7, 8, 9))
+    val rdd3 = sc.makeRDD(List[String]("2", "3", "7","8", "9"))
+    rdd1.union(rdd2).foreach(println)
+    //rdd1.union(rdd3)
+  }
+
+  def testSubtract(): Unit ={
+    val rdd1 = sc.makeRDD(List(1, 2, 3, 4, 5))
+    val rdd2 = sc.makeRDD(List(2, 3, 7, 8, 9))
+    rdd1.subtract(rdd2).foreach(println)
+  }
+
+  def testZip(): Unit ={
+    // 分区一致,元素类型一致,元素数量一致
+    println("===分区一致,元素类型一致,元素数量一致===")
+    val rdd1 = sc.makeRDD(List(1, 2, 3, 4, 5))
+    val rdd2 = sc.makeRDD(List(2, 3, 7, 8, 9))
+    rdd1.zip(rdd2).foreach(println)
+    // 分区不一致,元素类型一致,元素数量一致
+    println("===分区不一致,元素类型一致,元素数量一致===")
+    val rdd3 = sc.makeRDD(List(1, 2, 3, 4, 5),2)
+    val rdd4 = sc.makeRDD(List(2, 3, 7, 8, 9),4)
+    rdd3.zip(rdd4).foreach(println)
+    // 分区一致,元素类型一致,元素数量不一致
+    println("===分区一致,元素类型一致,元素数量不一致===")
+    val rdd5 = sc.makeRDD(List(1, 2, 3, 4, 5,6),4)
+    val rdd6 = sc.makeRDD(List(2, 3, 7, 8, 9),4)
+    rdd5.zip(rdd6).foreach(println)
+  }
+
+  def testPartitionBy(): Unit ={
+    import org.apache.spark._
+    val rdd1 = sc.makeRDD(Array((1, "aa"), (2, "bb"), (3, "cc"), (4, "dd"),(4, "dd")))
+    // 使用hashPartitioner
+    val rdd2: RDD[(Int, String)] = rdd1.partitionBy(new HashPartitioner(2))
+    rdd2.repartition(3).mapPartitionsWithIndex((p,x) => {
+      x.map((_,p))
+    }).foreach(println)
+    println("===RangePartitioner===")
+    rdd1.repartition(3).partitionBy(new RangePartitioner(4, rdd1)).mapPartitionsWithIndex((p,x) => {
+      x.map((_,p))
+    }).foreach(println)
+    println("===customPartitioner===")
+    rdd1.partitionBy(new Partitioner {
+      override def numPartitions: Int = 3 // 指定分区个数
+
+      override def getPartition(key: Any): Int = {
+        if(key.asInstanceOf[Int] % 2 == 0){
+          0
+        }else{
+          1
+        }
+      }
+    }).mapPartitionsWithIndex((p,x) => {
+      x.map((_,p))
+    }).foreach(println)
+  }
+
+  def testReduceByKey(): Unit ={
+    val rdd1 = sc.makeRDD(List(("a", 1), ("b", 1), ("c", 2), ("d", 3),("a", 3),("b", 3)))
+    rdd1.reduceByKey(_+_).foreach(println)
+    println("========================")
+    rdd1.reduceByKey(_+_,3).foreach(println)
+  }
+
+  def testGroupByKey(): Unit ={
+
+  }
+
+  def main(args: Array[String]): Unit = {
+    val conf = new SparkConf()
+      .setAppName("createRDD")
+      .setMaster("local[*]")
+    sc = new SparkContext(conf)
+    //    testMap(sc)
+    //    testMapPartitions(sc)
+    //    testMapPartitionsWithIndex(sc)
+    //    testFlatMap()
+    //    testGlom()
+    //    testGroupBy()
+    //    testFilter()
+    //    testSample()
+//    testDistinct()
+//    testCoalesce()
+    //testSortBy()
+//    testIntersection()
+    //testUnion()
+    //testSubtract()
+    //testZip()
+    //testPartitionBy()
+    testReduceByKey()
+
+
   }
 
 }
