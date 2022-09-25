@@ -1,7 +1,7 @@
 package SparkCore.RDD
 
 import org.apache.spark.rdd.RDD
-import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.{HashPartitioner, SparkConf, SparkContext}
 
 /**
  * @ClassName: transfunctionRDD
@@ -204,6 +204,75 @@ object TransFunctionRDD {
   }
 
   def testGroupByKey(): Unit ={
+    val rdd1 = sc.makeRDD(List(("a", 1), ("b", 2), ("c", 3), ("a", 2),("b",3)))
+    val rdd2 = rdd1.groupByKey()
+    rdd2.foreach(println)
+    val rdd3 = rdd1.groupByKey(5) // 默认的分区器是hashPartitioner
+    rdd3.foreach(println)
+    val rdd4 = rdd1.groupByKey(new HashPartitioner(3))
+    rdd4.foreach(println)
+
+  }
+
+  def testAggregateByKey(): Unit ={
+    val rdd1 = sc.makeRDD(List(("a", 1), ("b", 4), ("c", 3),("a", 2),("c",5),("c",6)),2)
+    val rdd2 = rdd1.aggregateByKey(0)(_ + _, _ + _)
+    rdd2.foreach(println)
+    println("=================================================================")
+    // 求分区内相同key的最大值,分区间将最大值求和
+    rdd1.aggregateByKey(0)(
+      (x,y) => math.max(x,y),
+      (x,y) => x + y
+    ).foreach(println)
+  }
+
+  def testFoldByKey(): Unit ={
+    val rdd1 = sc.makeRDD(List(("a", 1), ("b", 4), ("c", 3),("a", 2),("c",5),("c",6)),2)
+    val rdd2 = rdd1.foldByKey(0)(_ + _)
+    rdd2.foreach(println)
+  }
+
+  def testCombineByKey(): Unit ={
+    val rdd1 = sc.makeRDD(List[(String, Int)](("a", 88), ("b", 95), ("a", 91), ("b", 93), ("a", 95), ("b", 98)),2)
+    rdd1.combineByKey(
+      (_,1),
+      (acc:(Int,Int),v) => (acc._1 + v,acc._2 + 1),
+      (acc1:(Int,Int),acc2:(Int,Int)) => (acc1._1 + acc2._1,acc1._2 + acc2._2)
+    ).foreach(println)
+  }
+
+  def testSortByKey(): Unit ={
+    val rdd1 = sc.makeRDD(List(("a", 1), ("b", 4), ("c", 3),("a", 2),("c",5),("c",6)),2)
+    rdd1.sortByKey(true).foreach(println)
+  }
+
+  def testJoin(): Unit ={
+    val rdd1 = sc.makeRDD(Array((1, "a"), (2, "b"), (3, "c"),(9,"d")))
+    val rdd2 = sc.makeRDD(Array((1, 4), (2, 5), (3, 6),(4,7)))
+    rdd1.join(rdd2).foreach(println)
+  }
+
+  def testLeftOuterJoin(): Unit ={
+    val rdd1 = sc.makeRDD(Array((1, "a"), (2, "b"), (3, "c"),(9,"d")))
+    val rdd2 = sc.makeRDD(Array((1, 4), (2, 5), (3, 6),(4,7)))
+    rdd1.leftOuterJoin(rdd2).foreach(println)
+  }
+
+  def testCogroup(): Unit ={
+    val rdd1 = sc.makeRDD(List(("a", 1), ("a", 2), ("c", 3)))
+    val rdd2 = sc.makeRDD(List(("a", 3), ("a", 4), ("c", 5)))
+    rdd1.cogroup(rdd2).foreach(println)
+  }
+
+  def testProject(): Unit ={
+    val dataRDD1: RDD[String] = sc.textFile("D:\\study\\code\\Spark\\src\\main\\resources\\agent.log")
+    dataRDD1.map(_.split(" "))
+      .map(x => ((x(1),x(4)),x(0),x(2),x(3)))
+      .groupBy(_._1)
+      .map(x => (x._1,x._2.size))
+      .sortBy(_._2,false)
+      .take(3)
+      .foreach(println)
 
   }
 
@@ -228,9 +297,16 @@ object TransFunctionRDD {
     //testSubtract()
     //testZip()
     //testPartitionBy()
-    testReduceByKey()
-
-
+    //testReduceByKey()
+    //testGroupByKey()
+    //testAggregateByKey()
+    //testFoldByKey()
+    //testCombineByKey()
+    //testSortByKey()
+    //testJoin()
+    //testLeftOuterJoin()
+    //testCogroup()
+    testProject()
   }
 
 }
