@@ -4,6 +4,8 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.sql.SparkSession
 
+import scala.collection.mutable
+
 case class UserVisitAction(
                             date: String,//用户点击行为的日期
                             user_id: Long,//用户的 ID
@@ -26,12 +28,13 @@ object Case1 {
       .setMaster("local[*]")
       .setAppName("test1")
     spark = new SparkContext(conf)
-    readData().foreach(x => println(x.user_id))
+    val data: RDD[UserVisitAction] = readData()
+    test1(data).foreach(println)
 
   }
 
   def readData(): RDD[UserVisitAction] ={
-    val fileRdd = spark.textFile("D:\\File\\yang\\code\\idea\\spark\\src\\main\\resources\\user_visit_action.csv")
+    val fileRdd = spark.textFile("D:\\study\\code\\Spark\\src\\main\\resources\\user_visit_action.csv")
     fileRdd.map(x => {
       val datas = x.split(",")
       UserVisitAction(datas(0),datas(1).toLong,datas(2),datas(3).toLong,datas(4),datas(5),datas(6).toLong,datas(7).toLong,datas(8),datas(9),datas(10),
@@ -39,8 +42,24 @@ object Case1 {
     })
   }
 
-  def test1(): Unit ={
-
+  /**
+   * 分别统计每个品类点击的次数，下单的次数和支付的次数：
+   */
+  def test1(data:RDD[UserVisitAction]): RDD[(Long, (BigInt, Int, Int))] ={
+    val groupData: RDD[(Long, Iterable[UserVisitAction])] = data.groupBy(_.click_category_id)
+    val result: RDD[(Long, (BigInt, Int, Int))] = groupData.map(x => {
+      val category_id = x._1
+      var click_count: BigInt = 0
+      val order_category_count: mutable.Set[String] = mutable.Set[String]()
+      val pay_category_count: mutable.Set[String] = mutable.Set[String]()
+      x._2.map(y => {
+        click_count += 1
+        order_category_count.add(y.order_category_ids)
+        pay_category_count.add(y.pay_category_ids)
+      })
+      (category_id, (click_count, order_category_count.size, pay_category_count.size))
+    })
+    result
   }
 
 }
