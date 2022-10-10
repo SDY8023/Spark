@@ -1,5 +1,6 @@
 package SparkCore.RDDCase
 
+import org.apache.commons.lang3.StringUtils
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.sql.SparkSession
@@ -29,12 +30,18 @@ object Case1 {
       .setAppName("test1")
     spark = new SparkContext(conf)
     val data: RDD[UserVisitAction] = readData()
-    test1(data).foreach(println)
+    val result = test1(data)
+    println("====点击次数====")
+    result._1.foreach(println)
+    println("====下单次数====")
+    result._2.foreach(println)
+    println("====支付次数====")
+    result._3.foreach(println)
 
   }
 
   def readData(): RDD[UserVisitAction] ={
-    val fileRdd = spark.textFile("D:\\study\\code\\Spark\\src\\main\\resources\\user_visit_action.csv")
+    val fileRdd = spark.textFile("D:\\File\\yang\\code\\idea\\spark\\src\\main\\resources\\user_visit_action.csv")
     fileRdd.map(x => {
       val datas = x.split(",")
       UserVisitAction(datas(0),datas(1).toLong,datas(2),datas(3).toLong,datas(4),datas(5),datas(6).toLong,datas(7).toLong,datas(8),datas(9),datas(10),
@@ -45,21 +52,45 @@ object Case1 {
   /**
    * 分别统计每个品类点击的次数，下单的次数和支付的次数：
    */
-  def test1(data:RDD[UserVisitAction]): RDD[(Long, (BigInt, Int, Int))] ={
-    val groupData: RDD[(Long, Iterable[UserVisitAction])] = data.groupBy(_.click_category_id)
-    val result: RDD[(Long, (BigInt, Int, Int))] = groupData.map(x => {
-      val category_id = x._1
-      var click_count: BigInt = 0
-      val order_category_count: mutable.Set[String] = mutable.Set[String]()
-      val pay_category_count: mutable.Set[String] = mutable.Set[String]()
-      x._2.map(y => {
-        click_count += 1
-        order_category_count.add(y.order_category_ids)
-        pay_category_count.add(y.pay_category_ids)
+  def test1(data:RDD[UserVisitAction]): (RDD[(Long,Long)],RDD[(String,Long)],RDD[(String,Long)]) ={
+    // 每个品类点击的次数
+    val clickRDD: RDD[(Long, Long)] = data.filter(x => (x.click_category_id != -1 && x.click_product_id != -1))
+      .groupBy(_.click_category_id).map(x => {
+      var click_count: Long = 0
+      x._2.foreach(d => {
+        if(d.click_category_id != -1 && d.click_product_id != -1) {
+          click_count += 1
+        }
       })
-      (category_id, (click_count, order_category_count.size, pay_category_count.size))
+      (x._1, click_count)
     })
-    result
+
+    // 每个品类下单次数
+    val orderRDD: RDD[(String, Long)] = data.filter(x => StringUtils.isNotEmpty(x.order_category_ids) && StringUtils.isNotEmpty(x.order_category_ids))
+      .groupBy(_.order_category_ids)
+      .map(x => {
+        var count: Long = 0
+        x._2.foreach(d => {
+          if (d.order_category_ids != null && d.order_product_ids != null) {
+            count += 1
+          }
+        })
+        (x._1, count)
+      })
+
+    // 每个品类的支付次数
+    val payRDD: RDD[(String, Long)] = data.filter(x => StringUtils.isNotEmpty(x.pay_category_ids) && StringUtils.isNotEmpty(x.pay_product_ids))
+      .groupBy(_.pay_category_ids)
+      .map(x => {
+        var count: Long = 0
+        x._2.foreach(d => {
+          if (d.pay_category_ids != null && d.pay_product_ids != null) {
+            count += 1
+          }
+        })
+        (x._1, count)
+      })
+    (clickRDD,orderRDD,payRDD)
   }
 
 }
