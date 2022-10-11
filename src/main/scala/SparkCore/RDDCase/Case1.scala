@@ -37,11 +37,13 @@ object Case1 {
     result._2.foreach(println)
     println("====支付次数====")
     result._3.foreach(println)
+    println("====test2====")
+    test2(data)
 
   }
 
   def readData(): RDD[UserVisitAction] ={
-    val fileRdd = spark.textFile("D:\\File\\yang\\code\\idea\\spark\\src\\main\\resources\\user_visit_action.csv")
+    val fileRdd = spark.textFile("D:\\study\\code\\Spark\\src\\main\\resources\\user_visit_action.csv")
     fileRdd.map(x => {
       val datas = x.split(",")
       UserVisitAction(datas(0),datas(1).toLong,datas(2),datas(3).toLong,datas(4),datas(5),datas(6).toLong,datas(7).toLong,datas(8),datas(9),datas(10),
@@ -91,6 +93,29 @@ object Case1 {
         (x._1, count)
       })
     (clickRDD,orderRDD,payRDD)
+  }
+
+  /**
+   * 一次性统计每个品类点击的次数，下单的次数和支付的次数：
+   * @param data
+   */
+  def test2(data:RDD[UserVisitAction]): Unit ={
+    val categoryIdMap:mutable.Map[String,(Long,Long,Long)] = mutable.Map[String,(Long,Long,Long)]()
+    val value = data.map(x => {
+
+      if (x.click_category_id != -1) {
+        val click: (Long, Long, Long) = categoryIdMap.getOrElseUpdate(x.click_category_id.toString, (0, 0, 0))
+        categoryIdMap.update(x.click_category_id.toString, (click._1 + 1, click._2, click._3))
+      } else if (StringUtils.isNotEmpty(x.order_category_ids)) {
+        val order: (Long, Long, Long) = categoryIdMap.getOrElseUpdate(x.order_category_ids, (0, 0, 0))
+        categoryIdMap.update(x.order_category_ids, (order._1, order._2 + 1, order._3))
+      } else if (StringUtils.isNotEmpty(x.pay_category_ids)) {
+        val pay: (Long, Long, Long) = categoryIdMap.getOrElseUpdate(x.pay_category_ids, (0, 0, 0))
+        categoryIdMap.update(x.pay_category_ids, (pay._1, pay._2, pay._3 + 1))
+      }
+      categoryIdMap
+    })
+    value.foreach(println)
   }
 
 }
