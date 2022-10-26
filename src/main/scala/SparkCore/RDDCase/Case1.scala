@@ -133,14 +133,13 @@ object Case1 {
     data.filter(_.click_category_id != -1)
       .groupBy(_.click_category_id)
       .map(x => {
-        // 每个id累加前都需要重置累加器
-        clickCount.reset()
         x._2.foreach(y => {
           clickCount.add(1L)
         })
         (x._1,clickCount.value)
       }).foreach(println)
     // 订单次数
+
     println("=====订单次数=====")
     data.filter(x => StringUtils.isNotEmpty(x.order_category_ids))
       .groupBy(_.order_category_ids)
