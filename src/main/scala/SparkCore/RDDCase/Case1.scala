@@ -4,6 +4,7 @@ import org.apache.commons.lang3.StringUtils
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.util.LongAccumulator
 
 import scala.collection.mutable
 
@@ -30,15 +31,16 @@ object Case1 {
       .setAppName("test1")
     spark = new SparkContext(conf)
     val data: RDD[UserVisitAction] = readData()
-    val result = test1(data)
-    println("====点击次数====")
-    result._1.foreach(println)
-    println("====下单次数====")
-    result._2.foreach(println)
-    println("====支付次数====")
-    result._3.foreach(println)
-    println("====test2====")
-    test2(data)
+//    val result = test1(data)
+//    println("====点击次数====")
+//    result._1.foreach(println)
+//    println("====下单次数====")
+//    result._2.foreach(println)
+//    println("====支付次数====")
+//    result._3.foreach(println)
+//    println("====test2====")
+//    test2(data)
+    test3(data)
 
   }
 
@@ -116,6 +118,51 @@ object Case1 {
       categoryIdMap
     })
     value.foreach(println)
+  }
+
+  /**
+   * 使用累加器的方式聚合数据
+   */
+  def test3(data:RDD[UserVisitAction]): Unit ={
+    // 定义系统累加器
+    val clickCount: LongAccumulator = spark.longAccumulator("clickCount")
+    val orderCount: LongAccumulator = spark.longAccumulator("orderCount")
+    val payCount: LongAccumulator = spark.longAccumulator("payCount")
+    // 点击行为次数
+    println("=====点击行为=====")
+    data.filter(_.click_category_id != -1)
+      .groupBy(_.click_category_id)
+      .map(x => {
+        x._2.foreach(y => {
+          clickCount.add(1L)
+        })
+        (x._1,clickCount.value)
+      }).foreach(println)
+    // 订单次数
+
+    println("=====订单次数=====")
+    data.filter(x => StringUtils.isNotEmpty(x.order_category_ids))
+      .groupBy(_.order_category_ids)
+      .map(x => {
+        orderCount.reset()
+        x._2.foreach(y => {
+          orderCount.add(1L)
+        })
+        (x._1,orderCount.value)
+      }).foreach(println)
+    // 支付次数
+    println("=====支付次数=====")
+    data.filter(x => StringUtils.isNotEmpty(x.pay_category_ids))
+      .groupBy(_.pay_category_ids)
+      .map(x => {
+        payCount.reset()
+        x._2.foreach(y =>{
+          payCount.add(1L)
+        })
+        (x._1,payCount.value)
+      }).foreach(println)
+
+
   }
 
 }
