@@ -45,6 +45,7 @@ object rddToDataFrameToDataSet {
     //      case (id, name, age) => User()
     //    }.toDS()
     spark.stop()
+  }
 
 
 }

@@ -2,7 +2,7 @@ package SparkSql.UDAF
 
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.{SparkSession, TypedColumn}
-import util.MyAveragUDAF
+import util.{MyAveragUDAF, MyAveragUDAF2}
 import util.caseClass.User01
 
 class test2Accumulator3 {
