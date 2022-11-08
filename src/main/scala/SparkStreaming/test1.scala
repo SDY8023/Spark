@@ -3,13 +3,6 @@ package SparkStreaming
 import org.apache.spark.SparkConf
 import org.apache.spark.streaming.dstream.{DStream, ReceiverInputDStream}
 import org.apache.spark.streaming.{Seconds, StreamingContext}
-
-/**
- * @ClassName: test1
- * @Auther: SDY
- * @Description:
- * @Date: 2022/11/5 16:48
- * */
 object test1 {
   def main(args: Array[String]): Unit = {
     // 初始化配置信息
@@ -17,7 +10,7 @@ object test1 {
       .setMaster("local[*]")
       .setAppName("StreamWordCount")
     // 初始化SparkStreamingContext
-    val ssc: StreamingContext = new StreamingContext(conf,Seconds(3))
+    val ssc: StreamingContext = new StreamingContext(conf, Seconds(3))
     // 监控端口创建DStream，读进来的数据为一行行
     val dataStream: ReceiverInputDStream[String] = ssc.socketTextStream("192.168.1.71", 9999)
     // 将每行数据做切分，形成一个个单词
@@ -31,8 +24,6 @@ object test1 {
     // 启动sparkStream
     ssc.start()
     ssc.awaitTermination()
-
-
   }
 
 }

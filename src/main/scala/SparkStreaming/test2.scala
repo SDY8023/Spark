@@ -6,12 +6,6 @@ import org.apache.spark.streaming.{Seconds, StreamingContext}
 import org.apache.spark.streaming.dstream.{DStream, InputDStream}
 
 import scala.collection.mutable
-/**
- * @ClassName: test2
- * @Auther: SDY
- * @Description:
- * @Date: 2022/11/5 16:49
- * */
 object test2 {
   def main(args: Array[String]): Unit = {
     val conf = new SparkConf()
