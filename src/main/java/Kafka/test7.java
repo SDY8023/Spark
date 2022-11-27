@@ -34,7 +34,7 @@ public class test7 {
         // 发送数据
         try {
             for (int i = 0; i < 10; i++) {
-                ProducerRecord<String, String> test1 = new ProducerRecord<>("test2", "sdy" + i);
+                ProducerRecord<String, String> test1 = new ProducerRecord<>("test5", "sdy" + i);
                 kafkaProducer.send(test1);
             }
             // 提交事务
