@@ -35,13 +35,14 @@ object test5 {
       }
     })
 
-    var resultList: mutable.ListBuffer[(Int, Int)] = mutable.ListBuffer[(Int, Int)]()
+    // 每种情况表 (商品ID,价格,满意度)
+    var resultList: mutable.ListBuffer[(Int,Int, Int)] = mutable.ListBuffer[(Int,Int, Int)]()
     var totalPrice:Int = 0
     var totalIndex:Int = 0
     dataMap.foreach(x => {
       totalPrice = x._2(0)._1
       totalIndex = x._2(0)._1 * x._2(0)._2
-      resultList.append((totalPrice,totalIndex))
+      resultList.append((x._1,totalPrice,totalIndex))
       var j:Int = 1
       var i:Int = 1
       var tmpPrice =  totalPrice
@@ -50,7 +51,7 @@ object test5 {
         while(i < x._2.length){
           totalPrice += x._2(i)._1
           totalIndex += x._2(i)._1 * x._2(i)._2
-          resultList.append((totalPrice,totalIndex))
+          resultList.append((x._1,totalPrice,totalIndex))
           if(i == x._2.length -1){
             tmpPrice += x._2(j)._1
             tmpIndex += x._2(j)._1 * x._2(j)._2
@@ -77,25 +78,35 @@ object test5 {
     var i = 0
     val rList = mutable.ListBuffer[Int]()
     while(i < resultList.length){
-      rList.append(resultList(i)._2)
-      a = resultList(i)._1
-      b = resultList(i)._2
+      rList.append(resultList(i)._3)
+      a = resultList(i)._2
+      b = resultList(i)._3
       tmpA = a
       tmpB = b
-      j = i + 1
+      j = i
       var m = i
-      while(j < resultList.length){
-        a += resultList(j)._1
-        b += resultList(j)._2
-        if(a <= totalMoney){
-          rList.append(b)
-        }
+      while(j < resultList.length-1){
         j += 1
+        var id1 = resultList(m)._1
+        if(resultList(j)._1 != id1){
+          a += resultList(j)._2
+          b += resultList(j)._3
+          if(a <= totalMoney){
+            rList.append(b)
+          }
+        }
         if(j == resultList.length - 1){
           m += 1
           j = m
-          tmpA += resultList(j)._1
-          tmpB += resultList(j)._2
+          if(id1 != resultList(m)._1){
+            tmpA += resultList(j)._2
+            tmpB += resultList(j)._3
+          }else {
+            tmpA = tmpA - resultList(j-1)._2 + resultList(j)._2
+            tmpB = tmpB - resultList(j-1)._3 + resultList(j)._3
+          }
+          a = tmpA
+          b = tmpB
         }else{
           a = tmpA
           b = tmpB
