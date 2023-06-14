@@ -3,6 +3,7 @@ import org.apache.spark.util.AccumulatorV2
 class MyAC extends AccumulatorV2[Int,Int]{
   var sum:Int = 0
   var count:Int  = 0
+  //
   override def isZero: Boolean = {
     return sum ==0 && count == 0
   }
